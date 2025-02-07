@@ -17,7 +17,6 @@ the ipynb is a little new, haven't added anything meaningful yet.
 - add backward passes
 - later: write more sophisticated kernels (or get one online) to further speed up apd computations.
 - eventually: expand to cross-environment tests, adjust gridworld parameters, and experiment with interventions on these learning primitives.
--
 - i originally planned on using saes (see `project.tex`) for feature extraction—problems arose, so i pivoted to the direct apd approach for cleaner insight.
 
 ## references
