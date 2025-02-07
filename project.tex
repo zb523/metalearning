@@ -1,0 +1,222 @@
+\documentclass{article}
+\usepackage{amsmath}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{color}
+
+\definecolor{codegreen}{rgb}{0,0.6,0}
+\definecolor{codegray}{rgb}{0.5,0.5,0.5}
+\definecolor{codepurple}{rgb}{0.58,0,0.82}
+\definecolor{backcolthe}{rgb}{0.95,0.95,0.92}
+
+\lstdefinestyle{code}{
+    backgroundcolor=\color{backcolthe},
+    commentstyle=\color{codegreen},
+    keywordstyle=\color{magenta},
+    numberstyle=\tiny\color{codegray},
+    stringstyle=\color{codepurple},
+    basicstyle=\ttfamily\footnotesize,
+    breakatwhitespace=false,
+    breaklines=true,
+    captionpos=b,
+    keepspaces=true,
+    numbers=left,
+    numbersep=5pt,
+    showspaces=false,
+    showstringspaces=false,
+    showtabs=false,
+    tabsize=2
+}
+
+\begin{document}
+
+\title{Notes for the project}
+\author{}
+\date{}
+\maketitle
+
+% \section{What is the goal?}
+% The goal is to identify and manipulate internal features in RL agents that are:
+% \begin{itemize}
+%     \item \textbf{NOT} reward hacks
+%     \item \textbf{NOT} simple movement heuristics
+%     \item \textbf{INSTEAD} linked to the task structure
+% \end{itemize}
+% This is an attempt to uncover features that compress the environment’s dynamics, generalise beyond immediate rewards, and relate to the learning process itself.
+
+\section{Abstract of some sort}
+
+RL agents typically learn through trial and error, gradually building an understanding of their environment through direct experience. Quite inefficient since the agents must rediscover basic principles with each new task. 
+
+Maybe there exist fundamental learning features - cognitive primitives that accelerate learning within and potentially across related environments.
+Just like Deepseek R1-Zero emergently discovered how to reason by leveraging extended test-time computation to independently develop behaviors like reflection and alternative approach exploration without explicit programming, I attempt to discover these features emergently through a Q-learning agent's learning process in a simple gridworld environment. While starting with this minimal setup, the hope is that by identifying and amplifying these emergent learning features, I might find patterns that generalise to other environments and architectures.
+
+
+\section{Hypothesis}
+The core hypothesis is that some features learned during RL training encode \textbf{fundamental learning dynamics} (not just task-specific solutions), and that amplifying these features can accelerate learning within a task family.
+
+A stronger statement would be saying that there exist \textbf{environment-invariant} features that accelerate learning regardless of what environment you are in (gridworld, reasoning in math, etc.)
+
+Boosting features that consistently correlate with learning progress across training seeds might accelerate learning because the agent avoids rediscovering fundamental dynamics.
+
+More specifically, I suggest there exist features that are not simple movement heuristics or hand-crafted metrics, but are instead emergent representations of the agent's learning dynamics, specifically those that, when amplified, maximise the derivative of the reward signal. These features should act as a constraint or bias on the agent's learning process, like giving it 'two legs' to run with, rather than driving it directly to the goal.
+
+An analogue could be a "reasoning feature" for an LLM which, when amplified, encourages behaviors that maximize the rate of improvement in their respective RL environments, similar to how o1/r1 models seem to operate.
+
+I focus on the derivative of the reward as a proxy for learning speed, though this assumes smooth reward landscapes, which may not hold in all environments.
+\section{How do I find features?}
+
+I use a sparse autoencoder (SAE) trained \textbf{simultaneously} with the reinforcement learning agent. This means the SAE is not a static feature extractor, but rather a dynamic process that adapts to the agent's evolving internal states throughout learning, learning to represent the dynamics of the learning process, not just the final state.
+
+\subsection{Why simultaneous?}
+Essentially, I want to track how the agent's understanding of the environment changes over time.
+\begin{itemize}
+    \item The SAE's parameters are updated based on the current hidden state, but the cumulative effect of these updates is that the SAE becomes sensitive to features that are consistently present during the learning process
+    \item By training the SAE on the agent’s hidden states throughout training (not just at convergence), I bias it to encode features that recur during the learning process.
+\end{itemize}
+
+% \subsection{Technical details}
+
+% Specifically, during each training step of the agent, I collect hidden state activations from the Q-network to capture the agent's internal understanding of the environment. I then pass these activations through the SAE to learn a sparse representation of these states. I then:
+% \begin{itemize}
+%     \item Calculate the SAE's reconstruction loss.
+%     \item Update the SAE's parameters.
+%     \item Calculate the intrinsic reward based on the SAE's encoded states.
+%     \item Update the RL agent's Q-network.
+% \end{itemize}
+
+\section{How do I test this?}
+\begin{itemize}
+    \item \textbf{Feature correlation analysis:} Do boosted features maintain consistent relationships with rewards across environment variations? (still in gridworld for now)
+    \item \textbf{Temporal consistency:} Do genuine features activate before reward peaks, rather than merely correlating post-hoc?
+    \item \textbf{Intervention resilience:} If I inhibit a boosted feature:
+        \begin{itemize}
+            \item Genuine learning: Performance drops but recovers as the agent finds alternative strategies.
+            \item Reward hack: Performance degrades permanently, indicating an over-reliance on a brittle shortcut.
+        \end{itemize}
+\end{itemize}
+
+doing it with a toy model in a grid world environment for simplicity. below is one example comparing two training runs: one where we boost a specific feature (#2) that emerged during training, and another where we block that feature while boosting all others. the results raise interesting questions about what constitutes a fundamental learning feature versus a convenient environmental shortcut.
+
+
+\noindent
+\begin{minipage}{\linewidth}
+\centering
+\subsection*{ }
+\includegraphics[width=0.8\textwidth]{image.png}
+\captionof{ }{ \\
+plots comparing feature 2 boosting vs blocking: while feature 2 enables suspiciously clean learning when boosted (left), the agent's ability to learn effectively through distributed representation when feature 2 is blocked (right) suggests it's more likely a convenient shortcut than a fundamental learning primitive. if feature 2 encoded true learning dynamics, its absence should more severely impact learning.}
+\label{fig:metrics}
+\end{minipage}
+
+
+% The minimum viable test: Train an agent with a “perfect” feature, then shuffle goal positions. If performance remains robust, it suggests the feature is generalizable and not a reward hack. If performance collapses, it suggests the feature was specific to the original goal position and is therefore a reward hack.
+
+% \section*{Logs}
+
+% \subsection*{2025-01-27 23:20}
+
+% initialised gridworld environment, q-learning agent and sae adn linked them together.
+% let the sae do its thing (trained it after the agent, not at the same time), and then just kinda nudged the agent with a generic "be novel" reward which was proportional to the reconstruction error of the sae. want to be more direct, will try finding the features that are actually linked to getting rewards, and then crank those up.
+
+% \subsection*{2025-01-28 13:50}
+
+% gonna try implementing online sae training, where the sae is trained simultaneously with the rl agent.
+% need the sae to be always relevant to the agent's current behavior.
+% todo: collect data on the agent's states, actions, rewards, and sae features during training, and update the sae's parameters with that after each training step.
+
+% \subsection*{2025-01-28 21:13}
+
+% refinements, still lots of bugs, need to talk more precisely with llm
+
+% \subsection*{2025-01-28 22:21}
+% \begin{figure}[h]
+%     \centering
+%     \includegraphics[width=0.8\textwidth]{image.png}
+%     \caption{plots from boosting feature 2 only, and blocking feature 2 while boosting everything else.}
+%     \label{fig:metrics}
+% \end{figure}
+
+
+% q-losses (ideal curve should start high and smoothly decrease to near-zero as the agent figures things out):
+
+% \begin{itemize}
+%     \item feature 2 only (blue): quick drop, stays low and stable. agent found what it needed and stuck to it.
+%     \item except2 (orange): messy. high initial spike, more volatile throughout. agent's struggling to piece together a stable strategy.
+% \end{itemize}
+
+% intrinsic rewards (should spike early during exploration, then decrease as novelty diminishes):
+
+% \begin{itemize}
+%     \item feature 2 only: barely registers. suggests feature 2 is so directly useful that the agent doesn't need much exploration.
+%     \item except2: classic exploration curve but way higher magnitude. big initial spike, gradual decay. agent's desperately searching for alternatives to feature 2.
+% \end{itemize}
+
+% can infer that feature 2 is encoding something that is very useful for the task, but I need to figure out what it is, it can be reward hacking or movement related rather than what I want.
+
+% \subsection*{2025-01-29 15:19}
+
+% trying to flesh out my hypothesis first, some things aren't Ill defined, should tackle reward hacking now rather than later
+
+% \begin{itemize}
+%     \item core idea: features encode true task structure that utility are environment-invariant. when I boost these, learning accelerates bc the agent isn't wasting capacity rediscovering fundamental dynamics. (maybe??) reward hacks are environment-specific overfits.
+%     \item subproblems:
+%     \begin{itemize}
+%         \item feature disentanglement: do boosted features maintain causal relationship with reward across environment variations? test by:
+%         \begin{itemize}
+%             \item modifying gridworld layout/goal positions
+%             \item adding decoy rewards
+%             \item testing transfer to similar environments
+%         \end{itemize}
+%         \item temporal consistency: genuine features should activate before reward peaks (anticipatory), not just correlate post-hoc. track feature-reward cross-correlation over time.
+%         \item intervention resilience: if I surgically inhibit boosted feature:
+%         \begin{itemize}
+%             \item genuine learning: performance tanks but recovers through alternative pathways
+%             \item reward hack: performance permanently degraded (indicates overreliance on brittle shortcut)
+%         \end{itemize}
+%     \end{itemize}
+%     \item minimum viable test: take the "perfect" feature 2 agent, shuffle goal positions. if performance stays strong $\rightarrow$ genuine. if collapses $\rightarrow$ hack.
+%     \item maybe feature 2 from earlier was encoding path efficiency heuristics rather than direct reward correlation.
+%     \item analogy: boosting a "distance to goal" feature should help any navigation task. boosting a "when in position (3,2), go right" feature would be environment-locked.
+%     \item this reduces to: the features worth boosting are those that compress environment dynamics beyond immediate reward signals.
+% \end{itemize}
+
+% \subsection*{2025-01-29 15:40}
+
+% making different environments, gonna see what it looks like
+
+
+
+
+
+ 
+% the initial approach (\texttt{toy.ipynb}) used a Q-learning agent in a gridworld with a sparse autoencoder (SAE). The SAE was trained online to extract features from the agent’s internal states. I experimented with boosting Q-learning using intrinsic rewards based on SAE feature novelty. Results Ire promising but lacked direct control over feature-task relationships. This highlighted the need to focus on reward-correlated features.
+
+% \section{Refined Approach}
+% I shifted to feature-based reward shaping. By tracking SAE features that activate during rewards, I added an alignment term to the intrinsic reward. This enctheages activating reward-correlated features. I also implemented metrics (e.g., episode rewards, steps, total rewards) to plot learning curves and resolved a cell dependency issue in the notebook.
+
+% \section{Implementation}
+% the current framework (\texttt{newtoy.py}) includes:
+% \begin{itemize}
+%     \item Gridworld environments (basic, stochastic, lava, maze).
+%     \item Q-learning agent with a neural network policy.
+%     \item Replay buffer.
+%     \item Online SAE training.
+%     \item Feature-based reward shaping.
+%     \item Feature ablation and cross-environment correlation analysis.
+%     \item Temporal consistency checks.
+% \end{itemize}
+
+% \begin{figure}[h!]
+%     \centering
+%     \includegraphics[width=0.7\textwidth]{image.png}
+%     \caption{Example Image}
+%     \label{fig:example_image}
+% \end{figure}
+
+% Key observations: Boosting only Feature 2 led to focused activation patterns. Blocking Feature 2 while boosting other features caused the agent to compensate by increasing late-stage activation across multiple features. This suggests Feature 2 captures a core task component.
+
+% \section{Mechanistic Interpretability Bolstered RL}
+% If scaled to large language models (LLMs) — given SAEs can be trained online — agents could become far simpler to train and interpret.
+
+\end{document}
