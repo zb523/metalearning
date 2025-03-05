@@ -1,24 +1,68 @@
-# metalearning
+# Metalearning (WIP)
 
-this is a project exploring the identification and amplification of core learning features in rl agents. the goal is to extract minimal, generative primitives that capture fundamental learning dynamics—no more task-specific hacks.
+This repository explores the emergence of structured behavior in reinforcement learning systems through the lens of dynamical systems theory and pattern formation.
 
-through an apd-driven pipeline $^{[1]}$ (see `@scripts` for the detailed steps), i run a gridworld transformer training (via `apd_test_on_transformer.py`) to dump model snapshots every epoch. then, a follow-up analysis (using `apd_train.py`) leverages custom cuda kernels (speed is EVERYTHING, bc performance is key) to dissect layer-wise weight dynamics. the resulting data gets fed into a jupyter notebook where i can easily visualize learning waves and feature evolution.
+## Research Evolution & Key Findings
 
-the ipynb is a little new, haven't added anything meaningful yet.
+### Phase 1: Order Parameters
 
-## current setup
+Wanted to identify a measurable quantity that would correlate with learning progress.
 
-- rn: run transformer training and snapshot generation (apd test) from the `@scripts` folder.
-- then, run the apd analysis (apd train) also in `@scripts`.
-- finally, analyze the ipynb to extract **CORE** and **ENVIRONMENT-INVARIANT** features.
+Initially investigated phase transitions in learning systems by identifying universal order parameters:
 
-## future directions
+- Discovered strong correlation (-0.95) between gradient magnitude and agent performance
+- Key insight: gradient magnitude acts as an order parameter (measurement) rather than control parameter, meaning that it is a measurement of the system's state rather than a parameter that can be directly manipulated to cause a phase transition. Which makes sense, the agent will naturally minimize weight updates as it approaches the optimal policy.
 
-- add backward passes
-- later: write more sophisticated kernels (or get one online) to further speed up apd computations.
-- eventually: expand to cross-environment tests, adjust gridworld parameters, and experiment with interventions on these learning primitives.
-- i originally planned on using saes (see `project.tex`) for feature extraction—problems arose, so i pivoted to the direct apd approach for cleaner insight.
+### Phase 2: Control Parameters
 
-## references
+The jump from Phase 1 to 2 came from realizing the causation was backwards. Gradient magnitude wasn't causing good performance, it was a result of it. Like how temperature measures molecular motion but doesn't cause phase changes (heat flow does).
 
-[1] Dan Braun et al., _Interpretability in Parameter Space: Minimizing Mechanistic Description Length with Attribution-based Parameter Decomposition_ (2025). [https://arxiv.org/abs/2501.14926](https://arxiv.org/abs/2501.14926)
+This led to developing active control mechanisms through `control_parameter.py`:
+
+![Crystallization Evolution](scripts/images/crystallization_evolution.png)
+
+- Implemented β(s,t) selective pressure function to try to directly control the transition through selective pressure
+- Tested different pressure configurations (value-focused vs uncertainty-focused)
+- Found uncertainty-focused approach led to faster pattern formation (higher crystallization factor ~0.517 vs ~0.508)
+- However, higher crystallization just meant more rigid/stable patterns formed, not necessarily better ones
+- I.e, making patterns form quickly doesn't help if we can't guide them toward useful behaviors
+
+### Phase 3: Pattern Formation (Current)
+
+The shift from Phase 2 to 3 came from this limitation.
+Rather than just trying to force patterns to form quickly, one must first understand the fundamental dynamics of how useful patterns emerge and spread.
+
+Currently reframing through reaction-diffusion lens because:
+
+- Learning patterns seem to emerge and spread like chemical patterns
+- Well-studied mathematical frameworks exist for analyzing pattern formation
+- Provides tools for understanding both local pattern formation and global propagation
+- Focuses on what conditions lead to useful patterns, not just stable ones
+
+## Implementation Details
+
+The codebase currently includes:
+
+1. `order_parameter.py`: Initial investigation of universal order parameters
+
+   - Gradient magnitude analysis
+   - Parameter sweeps across architectures
+   - Visualization of phase transitions
+
+2. `control_parameter.py`: Active control experiments
+   - Selective pressure implementation
+   - Crystallization tracking (measures pattern stability, not quality)
+   - Multiple pressure configurations
+
+## Running the Code
+
+```bash
+# Install dependencies
+pip install -r requirements.txt
+
+# Run order parameter analysis
+python scripts/order_parameter.py
+
+# Run control parameter experiments
+python scripts/control_parameter.py
+```
